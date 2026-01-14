@@ -4,6 +4,9 @@ import sys
 from pathlib import Path
 
 import pyperclip
+from pyperclip import PyperclipException
+from PyQt5.QtCore import QStandardPaths, QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -16,7 +19,29 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+def _add_runtime_paths() -> None:
+    if getattr(sys, "frozen", False):
+        bundle_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+        exec_root = Path(sys.executable).resolve().parent
+        candidates = [
+            bundle_root,
+            bundle_root / "src",
+            exec_root,
+            exec_root / "src",
+        ]
+    else:
+        repo_root = Path(__file__).resolve().parents[1]
+        candidates = [
+            repo_root,
+            repo_root / "src",
+        ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            sys.path.insert(0, str(candidate))
+
+
+_add_runtime_paths()
 
 from src.crypto_utils import (
     KeyPackage,
@@ -26,8 +51,25 @@ from src.crypto_utils import (
     unwrap_key_with_passphrase,
 )
 
+def _log_directory() -> Path:
+    if getattr(sys, "frozen", False):
+        base_dir = Path(sys.executable).resolve().parent
+    else:
+        app_data = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+        base_dir = Path(app_data) if app_data else Path.home() / ".shareinfo"
+    log_dir = base_dir / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return log_dir
+
+
+LOG_PATH = _log_directory() / "decrypt_app.log"
+try:
+    LOG_PATH.touch(exist_ok=True)
+except OSError as exc:  # pragma: no cover - best effort
+    print(f"Failed to create log file at {LOG_PATH}: {exc}", file=sys.stderr)
+
 logging.basicConfig(
-    filename="decrypt_app.log",
+    filename=str(LOG_PATH),
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -81,6 +123,9 @@ class DecryptApp(QWidget):
         self.decrypt_file_button = QPushButton("Decrypt File")
         self.decrypt_file_button.clicked.connect(self.decrypt_file)
 
+        self.log_button = QPushButton("Open Log Folder")
+        self.log_button.clicked.connect(self.open_log_folder)
+
         layout = QVBoxLayout()
         layout.addWidget(self.encrypted_label)
         layout.addWidget(self.encrypted_text)
@@ -101,6 +146,7 @@ class DecryptApp(QWidget):
         layout.addWidget(self.file_path_entry)
         layout.addWidget(self.file_select_button)
         layout.addWidget(self.decrypt_file_button)
+        layout.addWidget(self.log_button)
 
         self.setLayout(layout)
 
@@ -159,9 +205,13 @@ class DecryptApp(QWidget):
 
     def copy_decrypted_data(self) -> None:
         if self.decrypted_text:
-            pyperclip.copy(self.decrypted_text)
-            QMessageBox.information(self, "Copied", "Decrypted data copied to clipboard.")
-            logging.info("Decrypted data copied to clipboard.")
+            try:
+                pyperclip.copy(self.decrypted_text)
+                QMessageBox.information(self, "Copied", "Decrypted data copied to clipboard.")
+                logging.info("Decrypted data copied to clipboard.")
+            except PyperclipException as exc:
+                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
+                logging.error("Clipboard unavailable: %s", exc)
         else:
             QMessageBox.critical(self, "Error", "No decrypted data to copy.")
             logging.error("No decrypted data to copy.")
@@ -201,6 +251,12 @@ class DecryptApp(QWidget):
         except Exception as exc:  # pragma: no cover - GUI safety net
             QMessageBox.critical(self, "Error", f"File decryption failed: {exc}")
             logging.error("File decryption failed: %s", exc)
+
+    def open_log_folder(self) -> None:
+        url = QUrl.fromLocalFile(str(_log_directory()))
+        if not QDesktopServices.openUrl(url):
+            QMessageBox.critical(self, "Error", "Failed to open log folder.")
+            logging.error("Failed to open log folder: %s", LOG_PATH)
 
 
 if __name__ == "__main__":
