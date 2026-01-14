@@ -14,12 +14,12 @@ If you already have `uv` installed (e.g., via `brew` or `pipx`), you can skip th
 
 ### Sender (Encrypt)
 ```bash
-python apps/encrypt_app.py
+uv run python apps/encrypt_app.py
 ```
 
 ### Receiver (Decrypt)
 ```bash
-python apps/decrypt_app.py
+uv run python apps/decrypt_app.py
 ```
 
 ### File Support
@@ -28,8 +28,8 @@ The GUI supports encrypting files to `.fernet` and decrypting them back on the r
 ### Packaging (Recommended for Daily Use)
 ```bash
 uv pip install -r requirements-dev.txt
-pyinstaller --onefile --windowed apps/encrypt_app.py
-pyinstaller --onefile --windowed apps/decrypt_app.py
+uv run pyinstaller --onefile --windowed apps/encrypt_app.py
+uv run pyinstaller --onefile --windowed apps/decrypt_app.py
 ```
 
 Use the generated binaries from `dist/` for real-world usage instead of running the Python scripts directly.
