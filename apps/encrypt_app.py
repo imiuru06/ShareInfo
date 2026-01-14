@@ -3,9 +3,6 @@ import sys
 from pathlib import Path
 
 import pyperclip
-from pyperclip import PyperclipException
-from PyQt5.QtCore import QStandardPaths, QUrl
-from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -18,7 +15,12 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from app_crypto_utils import (
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    sys.path.append(sys._MEIPASS)
+else:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from src.crypto_utils import (
     encrypt_bytes,
     encrypt_text,
     generate_key,
@@ -26,25 +28,8 @@ from app_crypto_utils import (
     wrap_key_with_passphrase,
 )
 
-def _log_directory() -> Path:
-    if getattr(sys, "frozen", False):
-        base_dir = Path(sys.executable).resolve().parent
-    else:
-        app_data = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
-        base_dir = Path(app_data) if app_data else Path.home() / ".shareinfo"
-    log_dir = base_dir / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    return log_dir
-
-
-LOG_PATH = _log_directory() / "encrypt_app.log"
-try:
-    LOG_PATH.touch(exist_ok=True)
-except OSError as exc:  # pragma: no cover - best effort
-    print(f"Failed to create log file at {LOG_PATH}: {exc}", file=sys.stderr)
-
 logging.basicConfig(
-    filename=str(LOG_PATH),
+    filename="encrypt_app.log",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -81,7 +66,6 @@ class EncryptApp(QWidget):
         self.passphrase_label = QLabel("Optional Passphrase (protects key package):")
         self.passphrase_entry = QLineEdit()
         self.passphrase_entry.setEchoMode(QLineEdit.Password)
-        self.passphrase_entry.textChanged.connect(self._update_key_package)
 
         self.key_package_label = QLabel("Key Package (JSON for passphrase unlock):")
         self.key_package_text = QTextEdit()
@@ -105,9 +89,6 @@ class EncryptApp(QWidget):
         self.encrypt_file_button = QPushButton("Encrypt File")
         self.encrypt_file_button.clicked.connect(self.encrypt_file)
 
-        self.log_button = QPushButton("Open Log Folder")
-        self.log_button.clicked.connect(self.open_log_folder)
-
         layout = QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.text_edit)
@@ -129,7 +110,6 @@ class EncryptApp(QWidget):
         layout.addWidget(self.file_path_entry)
         layout.addWidget(self.file_select_button)
         layout.addWidget(self.encrypt_file_button)
-        layout.addWidget(self.log_button)
 
         self.setLayout(layout)
 
@@ -161,39 +141,27 @@ class EncryptApp(QWidget):
 
     def copy_key(self) -> None:
         if self.key:
-            try:
-                pyperclip.copy(self.key.decode())
-                QMessageBox.information(self, "Copied", "Encryption key copied to clipboard.")
-                logging.info("Encryption key copied to clipboard.")
-            except PyperclipException as exc:
-                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
-                logging.error("Clipboard unavailable: %s", exc)
+            pyperclip.copy(self.key.decode())
+            QMessageBox.information(self, "Copied", "Encryption key copied to clipboard.")
+            logging.info("Encryption key copied to clipboard.")
         else:
             QMessageBox.critical(self, "Error", "No encryption key to copy.")
             logging.error("No encryption key to copy.")
 
     def copy_key_package(self) -> None:
         if self.key_package_json:
-            try:
-                pyperclip.copy(self.key_package_json)
-                QMessageBox.information(self, "Copied", "Key package copied to clipboard.")
-                logging.info("Key package copied to clipboard.")
-            except PyperclipException as exc:
-                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
-                logging.error("Clipboard unavailable: %s", exc)
+            pyperclip.copy(self.key_package_json)
+            QMessageBox.information(self, "Copied", "Key package copied to clipboard.")
+            logging.info("Key package copied to clipboard.")
         else:
             QMessageBox.critical(self, "Error", "No key package to copy.")
             logging.error("No key package to copy.")
 
     def copy_data(self) -> None:
         if self.encrypted_data:
-            try:
-                pyperclip.copy(self.encrypted_data)
-                QMessageBox.information(self, "Copied", "Encrypted data copied to clipboard.")
-                logging.info("Encrypted data copied to clipboard.")
-            except PyperclipException as exc:
-                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
-                logging.error("Clipboard unavailable: %s", exc)
+            pyperclip.copy(self.encrypted_data)
+            QMessageBox.information(self, "Copied", "Encrypted data copied to clipboard.")
+            logging.info("Encrypted data copied to clipboard.")
         else:
             QMessageBox.critical(self, "Error", "No encrypted data to copy.")
             logging.error("No encrypted data to copy.")
@@ -245,12 +213,6 @@ class EncryptApp(QWidget):
         except Exception as exc:  # pragma: no cover - GUI safety net
             QMessageBox.critical(self, "Error", f"File encryption failed: {exc}")
             logging.error("File encryption failed: %s", exc)
-
-    def open_log_folder(self) -> None:
-        url = QUrl.fromLocalFile(str(_log_directory()))
-        if not QDesktopServices.openUrl(url):
-            QMessageBox.critical(self, "Error", "Failed to open log folder.")
-            logging.error("Failed to open log folder: %s", LOG_PATH)
 
 
 if __name__ == "__main__":

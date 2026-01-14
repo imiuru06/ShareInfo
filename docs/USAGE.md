@@ -19,6 +19,25 @@ pyinstaller --onefile --windowed apps/decrypt_app.py
 
 The binaries will be placed in the `dist/` directory. For regular usage, run the packaged binaries instead of `python apps/*.py`.
 
+### `dist/` Output and What to Copy
+- `--onefile`: PyInstaller produces a single executable in `dist/`. You can copy that single file to another machine **with the same OS/architecture** and run it.
+- `--onedir` (default): PyInstaller produces a folder like `dist/encrypt_app/`. You must copy the **entire folder**, not just the main executable, because Qt plugins and shared libraries live alongside it.
+
+### Spec-Driven Builds (Recommended for Repeatable Releases)
+Generate and keep a `.spec` file to make packaging reproducible and to centralize `--add-data` entries.
+```bash
+pyinstaller --onefile --windowed --name encrypt_app --specpath build/spec apps/encrypt_app.py
+pyinstaller --onefile --windowed --name decrypt_app --specpath build/spec apps/decrypt_app.py
+```
+Edit the generated `.spec` files to add extra resources under `datas` and custom import paths under `pathex`.
+
+### `--add-data` Path Rules
+PyInstaller expects different separators per OS:
+- **Windows**: `--add-data "path\\to\\asset;dest"`
+- **macOS/Linux**: `--add-data "path/to/asset:dest"`
+
+If you need to bundle extra assets (e.g., icons, templates, or config files), prefer adding them to the spec `datas` list so the same configuration is used across builds.
+
 ## Distribution Notes
 - Build on the target OS (Windows/macOS/Linux) to avoid runtime compatibility issues.
 - Verify license compliance for bundled dependencies (PyQt5, cryptography, pyperclip).
@@ -29,6 +48,11 @@ The binaries will be placed in the `dist/` directory. For regular usage, run the
 ## Troubleshooting
 ### `ModuleNotFoundError: No module named 'src'`
 Ensure the `src` directory is treated as a package and rebuild with PyInstaller. This repo includes `src/__init__.py` so PyInstaller can bundle the module; rebuild from the repository root after pulling updates.
+If the error persists, rebuild with an explicit path and submodule collection:
+```bash
+pyinstaller --paths . --collect-submodules src --onefile --windowed apps/encrypt_app.py
+pyinstaller --paths . --collect-submodules src --onefile --windowed apps/decrypt_app.py
+```
 
 ## Sender (Encrypt)
 ```bash

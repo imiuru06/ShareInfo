@@ -83,8 +83,6 @@ def wrap_key_with_passphrase(key: bytes, passphrase: str) -> KeyPackage:
 
 
 def unwrap_key_with_passphrase(key_package: KeyPackage, passphrase: str) -> bytes:
-    if key_package.kdf != "PBKDF2HMAC-SHA256":
-        raise ValueError(f"Unsupported key derivation function: {key_package.kdf}")
     salt = base64.urlsafe_b64decode(key_package.salt.encode())
     derived_key = _derive_key(passphrase, salt, key_package.iterations)
     wrapper = Fernet(derived_key)
