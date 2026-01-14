@@ -2,9 +2,9 @@
 
 ## Setup
 ```bash
-python -m venv .venv
+uv venv
 source .venv/bin/activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 ## Packaging (PyInstaller)
@@ -13,7 +13,7 @@ pyinstaller --onefile --windowed apps/encrypt_app.py
 pyinstaller --onefile --windowed apps/decrypt_app.py
 ```
 
-The binaries will be placed in the `dist/` directory.
+The binaries will be placed in the `dist/` directory. For regular usage, run the packaged binaries instead of `python apps/*.py`.
 
 ## Sender (Encrypt)
 ```bash
