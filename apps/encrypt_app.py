@@ -18,14 +18,29 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-if getattr(sys, "frozen", False):
-    bundle_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
-    sys.path.append(str(bundle_root))
-    sys.path.append(str(bundle_root / "src"))
-else:
-    repo_root = Path(__file__).resolve().parents[1]
-    sys.path.append(str(repo_root))
-    sys.path.append(str(repo_root / "src"))
+def _add_runtime_paths() -> None:
+    if getattr(sys, "frozen", False):
+        bundle_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+        exec_root = Path(sys.executable).resolve().parent
+        candidates = [
+            bundle_root,
+            bundle_root / "src",
+            exec_root,
+            exec_root / "src",
+        ]
+    else:
+        repo_root = Path(__file__).resolve().parents[1]
+        candidates = [
+            repo_root,
+            repo_root / "src",
+        ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            sys.path.insert(0, str(candidate))
+
+
+_add_runtime_paths()
 
 from src.crypto_utils import (
     encrypt_bytes,
@@ -36,14 +51,21 @@ from src.crypto_utils import (
 )
 
 def _log_directory() -> Path:
-    app_data = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
-    base_dir = Path(app_data) if app_data else Path.home() / ".shareinfo"
+    if getattr(sys, "frozen", False):
+        base_dir = Path(sys.executable).resolve().parent
+    else:
+        app_data = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+        base_dir = Path(app_data) if app_data else Path.home() / ".shareinfo"
     log_dir = base_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
 
 
 LOG_PATH = _log_directory() / "encrypt_app.log"
+try:
+    LOG_PATH.touch(exist_ok=True)
+except OSError as exc:  # pragma: no cover - best effort
+    print(f"Failed to create log file at {LOG_PATH}: {exc}", file=sys.stderr)
 
 logging.basicConfig(
     filename=str(LOG_PATH),

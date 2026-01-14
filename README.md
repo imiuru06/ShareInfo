@@ -27,7 +27,7 @@ The GUI supports encrypting files to `.fernet` and decrypting them back on the r
 
 ### Logs 확인
 앱 화면의 **Open Log Folder** 버튼을 누르면 로그가 저장된 폴더가 열립니다.
-로그는 기본적으로 `~/.shareinfo/logs/` 아래에 저장됩니다.
+로그는 PyInstaller 실행 파일과 동일한 폴더의 `logs/`에 저장되며, 소스 실행 시에는 OS별 AppData 위치(예: macOS `~/Library/Application Support/ShareInfo/`, Windows `%APPDATA%\\ShareInfo`) 하위의 `logs/`에 저장됩니다.
 
 ### Packaging (Recommended for Daily Use)
 ```bash
