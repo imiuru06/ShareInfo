@@ -40,7 +40,7 @@ class DecryptApp(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.key: bytes | None = None
-        self.decrypted_text: str | None = None
+        self.decrypted_value: str | None = None
         self.init_ui()
 
     def init_ui(self) -> None:
@@ -148,8 +148,8 @@ class DecryptApp(QWidget):
 
         try:
             self.key = raw_key.encode()
-            self.decrypted_text = decrypt_text(encrypted_data, self.key)
-            self.decrypted_text_widget_set(self.decrypted_text)
+            self.decrypted_value = decrypt_text(encrypted_data, self.key)
+            self.decrypted_text.setText(self.decrypted_value)
             self.fingerprint_value.setText(key_fingerprint(self.key))
             QMessageBox.information(self, "Success", "Data decrypted successfully.")
             logging.info("Data decrypted successfully.")
@@ -157,12 +157,9 @@ class DecryptApp(QWidget):
             QMessageBox.critical(self, "Error", f"Decryption failed: {exc}")
             logging.error("Decryption failed: %s", exc)
 
-    def decrypted_text_widget_set(self, text: str) -> None:
-        self.decrypted_text.setText(text)
-
     def copy_decrypted_data(self) -> None:
-        if self.decrypted_text:
-            pyperclip.copy(self.decrypted_text)
+        if self.decrypted_value:
+            pyperclip.copy(self.decrypted_value)
             QMessageBox.information(self, "Copied", "Decrypted data copied to clipboard.")
             logging.info("Decrypted data copied to clipboard.")
         else:
