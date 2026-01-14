@@ -42,6 +42,47 @@ def _add_runtime_paths() -> None:
 
 _add_runtime_paths()
 
+def _load_crypto_utils() -> None:
+    try:
+        __import__("src.crypto_utils")
+        return
+    except ModuleNotFoundError:
+        pass
+
+    if getattr(sys, "frozen", False):
+        bundle_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+        exec_root = Path(sys.executable).resolve().parent
+        candidates = [
+            bundle_root / "src" / "crypto_utils.py",
+            exec_root / "src" / "crypto_utils.py",
+        ]
+    else:
+        repo_root = Path(__file__).resolve().parents[1]
+        candidates = [
+            repo_root / "src" / "crypto_utils.py",
+        ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            import importlib.util
+            import types
+
+            src_pkg = types.ModuleType("src")
+            src_pkg.__path__ = [str(candidate.parent)]
+            sys.modules.setdefault("src", src_pkg)
+
+            spec = importlib.util.spec_from_file_location("src.crypto_utils", candidate)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules["src.crypto_utils"] = module
+                spec.loader.exec_module(module)
+                return
+
+    raise ModuleNotFoundError("No module named 'src' (crypto_utils not found)")
+
+
+_load_crypto_utils()
+
 from src.crypto_utils import (
     encrypt_bytes,
     encrypt_text,
