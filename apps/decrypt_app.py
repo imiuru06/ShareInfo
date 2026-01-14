@@ -75,6 +75,7 @@ class DecryptApp(QWidget):
 
         self.copy_button = QPushButton("Copy Decrypted Data")
         self.copy_button.clicked.connect(self.copy_decrypted_data)
+        self.copy_button.setEnabled(False)
 
         self.file_label = QLabel("File Decryption:")
         self.file_path_entry = QLineEdit()
@@ -151,6 +152,7 @@ class DecryptApp(QWidget):
             self.decrypted_value = decrypt_text(encrypted_data, self.key)
             self.decrypted_text.setText(self.decrypted_value)
             self.fingerprint_value.setText(key_fingerprint(self.key))
+            self._update_button_states()
             QMessageBox.information(self, "Success", "Data decrypted successfully.")
             logging.info("Data decrypted successfully.")
         except Exception as exc:  # pragma: no cover - GUI safety net
@@ -165,6 +167,9 @@ class DecryptApp(QWidget):
         else:
             QMessageBox.critical(self, "Error", "No decrypted data to copy.")
             logging.error("No decrypted data to copy.")
+
+    def _update_button_states(self) -> None:
+        self.copy_button.setEnabled(self.decrypted_value is not None)
 
     def select_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Encrypted File", "", "Encrypted Files (*.fernet);;All Files (*)")
@@ -195,7 +200,18 @@ class DecryptApp(QWidget):
                 return
             with open(save_path, "wb") as file_handle:
                 file_handle.write(decrypted_payload)
+
+            # Try to decode as text for display and copy functionality
+            try:
+                self.decrypted_value = decrypted_payload.decode('utf-8')
+                self.decrypted_text.setText(self.decrypted_value)
+            except UnicodeDecodeError:
+                # Binary file - show info message instead
+                self.decrypted_value = None
+                self.decrypted_text.setText("[Binary file decrypted - cannot display as text]")
+
             self.fingerprint_value.setText(key_fingerprint(self.key))
+            self._update_button_states()
             QMessageBox.information(self, "Success", "File decrypted and saved successfully.")
             logging.info("File decrypted successfully: %s", save_path)
         except Exception as exc:  # pragma: no cover - GUI safety net

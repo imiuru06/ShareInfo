@@ -62,10 +62,12 @@ class EncryptApp(QWidget):
 
         self.copy_key_button = QPushButton("Copy Key to Clipboard")
         self.copy_key_button.clicked.connect(self.copy_key)
+        self.copy_key_button.setEnabled(False)
 
         self.passphrase_label = QLabel("Optional Passphrase (protects key package):")
         self.passphrase_entry = QLineEdit()
         self.passphrase_entry.setEchoMode(QLineEdit.Password)
+        self.passphrase_entry.textChanged.connect(self._update_key_package)
 
         self.key_package_label = QLabel("Key Package (JSON for passphrase unlock):")
         self.key_package_text = QTextEdit()
@@ -73,6 +75,7 @@ class EncryptApp(QWidget):
 
         self.copy_key_package_button = QPushButton("Copy Key Package")
         self.copy_key_package_button.clicked.connect(self.copy_key_package)
+        self.copy_key_package_button.setEnabled(False)
 
         self.encrypted_data_label = QLabel("Encrypted Data:")
         self.encrypted_data_text = QTextEdit()
@@ -80,6 +83,7 @@ class EncryptApp(QWidget):
 
         self.copy_data_button = QPushButton("Copy Data to Clipboard")
         self.copy_data_button.clicked.connect(self.copy_data)
+        self.copy_data_button.setEnabled(False)
 
         self.file_label = QLabel("File Encryption:")
         self.file_path_entry = QLineEdit()
@@ -128,6 +132,7 @@ class EncryptApp(QWidget):
             self.encrypted_data_text.setText(self.encrypted_data)
 
             self._update_key_package()
+            self._update_button_states()
 
             QMessageBox.information(
                 self,
@@ -175,6 +180,12 @@ class EncryptApp(QWidget):
         else:
             self.key_package_json = None
             self.key_package_text.clear()
+        self._update_button_states()
+
+    def _update_button_states(self) -> None:
+        self.copy_key_button.setEnabled(self.key is not None)
+        self.copy_key_package_button.setEnabled(self.key_package_json is not None)
+        self.copy_data_button.setEnabled(self.encrypted_data is not None)
 
     def select_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Encrypt")
@@ -194,6 +205,7 @@ class EncryptApp(QWidget):
                 self.key_entry.setText(self.key.decode())
                 self.key_fingerprint_value.setText(key_fingerprint(self.key))
                 self._update_key_package()
+                self._update_button_states()
             with open(file_path, "rb") as file_handle:
                 payload = file_handle.read()
             encrypted_payload = encrypt_bytes(payload, self.key)
