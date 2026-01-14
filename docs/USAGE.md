@@ -2,13 +2,17 @@
 
 ## Setup
 ```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv
 source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
+If you already have `uv` installed (e.g., via `brew` or `pipx`), you can skip the install step.
+
 ## Packaging (PyInstaller)
 ```bash
+uv pip install -r requirements-dev.txt
 pyinstaller --onefile --windowed apps/encrypt_app.py
 pyinstaller --onefile --windowed apps/decrypt_app.py
 ```
