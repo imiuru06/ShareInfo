@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 import pyperclip
+from pyperclip import PyperclipException
 from PyQt5.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -15,7 +16,10 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+if getattr(sys, "frozen", False):
+    sys.path.append(str(Path(sys._MEIPASS)))
+else:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.crypto_utils import (
     encrypt_bytes,
@@ -63,6 +67,7 @@ class EncryptApp(QWidget):
         self.passphrase_label = QLabel("Optional Passphrase (protects key package):")
         self.passphrase_entry = QLineEdit()
         self.passphrase_entry.setEchoMode(QLineEdit.Password)
+        self.passphrase_entry.textChanged.connect(self._update_key_package)
 
         self.key_package_label = QLabel("Key Package (JSON for passphrase unlock):")
         self.key_package_text = QTextEdit()
@@ -138,27 +143,39 @@ class EncryptApp(QWidget):
 
     def copy_key(self) -> None:
         if self.key:
-            pyperclip.copy(self.key.decode())
-            QMessageBox.information(self, "Copied", "Encryption key copied to clipboard.")
-            logging.info("Encryption key copied to clipboard.")
+            try:
+                pyperclip.copy(self.key.decode())
+                QMessageBox.information(self, "Copied", "Encryption key copied to clipboard.")
+                logging.info("Encryption key copied to clipboard.")
+            except PyperclipException as exc:
+                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
+                logging.error("Clipboard unavailable: %s", exc)
         else:
             QMessageBox.critical(self, "Error", "No encryption key to copy.")
             logging.error("No encryption key to copy.")
 
     def copy_key_package(self) -> None:
         if self.key_package_json:
-            pyperclip.copy(self.key_package_json)
-            QMessageBox.information(self, "Copied", "Key package copied to clipboard.")
-            logging.info("Key package copied to clipboard.")
+            try:
+                pyperclip.copy(self.key_package_json)
+                QMessageBox.information(self, "Copied", "Key package copied to clipboard.")
+                logging.info("Key package copied to clipboard.")
+            except PyperclipException as exc:
+                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
+                logging.error("Clipboard unavailable: %s", exc)
         else:
             QMessageBox.critical(self, "Error", "No key package to copy.")
             logging.error("No key package to copy.")
 
     def copy_data(self) -> None:
         if self.encrypted_data:
-            pyperclip.copy(self.encrypted_data)
-            QMessageBox.information(self, "Copied", "Encrypted data copied to clipboard.")
-            logging.info("Encrypted data copied to clipboard.")
+            try:
+                pyperclip.copy(self.encrypted_data)
+                QMessageBox.information(self, "Copied", "Encrypted data copied to clipboard.")
+                logging.info("Encrypted data copied to clipboard.")
+            except PyperclipException as exc:
+                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
+                logging.error("Clipboard unavailable: %s", exc)
         else:
             QMessageBox.critical(self, "Error", "No encrypted data to copy.")
             logging.error("No encrypted data to copy.")
