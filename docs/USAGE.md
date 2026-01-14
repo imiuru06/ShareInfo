@@ -26,6 +26,10 @@ The binaries will be placed in the `dist/` directory. For regular usage, run the
 - Keep your signing/notarization workflow ready if distributing to end users (especially macOS/Windows).
 - Treat logs as sensitive; the apps write `encrypt_app.log` / `decrypt_app.log` to the working directory.
 
+## Troubleshooting
+### `ModuleNotFoundError: No module named 'src'`
+Ensure the `src` directory is treated as a package and rebuild with PyInstaller. This repo includes `src/__init__.py` so PyInstaller can bundle the module; rebuild from the repository root after pulling updates.
+
 ## Sender (Encrypt)
 ```bash
 python apps/encrypt_app.py
