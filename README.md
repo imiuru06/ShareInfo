@@ -25,6 +25,10 @@ python apps/decrypt_app.py
 ### File Support
 The GUI supports encrypting files to `.fernet` and decrypting them back on the receiver side.
 
+### Logs 확인
+앱 화면의 **Open Log Folder** 버튼을 누르면 로그가 저장된 폴더가 열립니다.
+로그는 기본적으로 `~/.shareinfo/logs/` 아래에 저장됩니다.
+
 ### Packaging (Recommended for Daily Use)
 ```bash
 uv pip install -r requirements-dev.txt

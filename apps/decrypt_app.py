@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pyperclip
 from pyperclip import PyperclipException
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -30,8 +32,16 @@ from src.crypto_utils import (
     unwrap_key_with_passphrase,
 )
 
+def _log_directory() -> Path:
+    log_dir = Path.home() / ".shareinfo" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return log_dir
+
+
+LOG_PATH = _log_directory() / "decrypt_app.log"
+
 logging.basicConfig(
-    filename="decrypt_app.log",
+    filename=str(LOG_PATH),
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -85,6 +95,9 @@ class DecryptApp(QWidget):
         self.decrypt_file_button = QPushButton("Decrypt File")
         self.decrypt_file_button.clicked.connect(self.decrypt_file)
 
+        self.log_button = QPushButton("Open Log Folder")
+        self.log_button.clicked.connect(self.open_log_folder)
+
         layout = QVBoxLayout()
         layout.addWidget(self.encrypted_label)
         layout.addWidget(self.encrypted_text)
@@ -105,6 +118,7 @@ class DecryptApp(QWidget):
         layout.addWidget(self.file_path_entry)
         layout.addWidget(self.file_select_button)
         layout.addWidget(self.decrypt_file_button)
+        layout.addWidget(self.log_button)
 
         self.setLayout(layout)
 
@@ -209,6 +223,12 @@ class DecryptApp(QWidget):
         except Exception as exc:  # pragma: no cover - GUI safety net
             QMessageBox.critical(self, "Error", f"File decryption failed: {exc}")
             logging.error("File decryption failed: %s", exc)
+
+    def open_log_folder(self) -> None:
+        url = QUrl.fromLocalFile(str(_log_directory()))
+        if not QDesktopServices.openUrl(url):
+            QMessageBox.critical(self, "Error", "Failed to open log folder.")
+            logging.error("Failed to open log folder: %s", LOG_PATH)
 
 
 if __name__ == "__main__":
