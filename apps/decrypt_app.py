@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import pyperclip
+from pyperclip import PyperclipException
 from PyQt5.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -16,7 +17,10 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+if getattr(sys, "frozen", False):
+    sys.path.append(str(Path(sys._MEIPASS)))
+else:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.crypto_utils import (
     KeyPackage,
@@ -159,9 +163,13 @@ class DecryptApp(QWidget):
 
     def copy_decrypted_data(self) -> None:
         if self.decrypted_text:
-            pyperclip.copy(self.decrypted_text)
-            QMessageBox.information(self, "Copied", "Decrypted data copied to clipboard.")
-            logging.info("Decrypted data copied to clipboard.")
+            try:
+                pyperclip.copy(self.decrypted_text)
+                QMessageBox.information(self, "Copied", "Decrypted data copied to clipboard.")
+                logging.info("Decrypted data copied to clipboard.")
+            except PyperclipException as exc:
+                QMessageBox.critical(self, "Error", f"Clipboard unavailable: {exc}")
+                logging.error("Clipboard unavailable: %s", exc)
         else:
             QMessageBox.critical(self, "Error", "No decrypted data to copy.")
             logging.error("No decrypted data to copy.")
