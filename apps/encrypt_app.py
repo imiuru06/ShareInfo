@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pyperclip
 from pyperclip import PyperclipException
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QStandardPaths, QUrl
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QApplication,
@@ -19,9 +19,13 @@ from PyQt5.QtWidgets import (
 )
 
 if getattr(sys, "frozen", False):
-    sys.path.append(str(Path(sys._MEIPASS)))
+    bundle_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    sys.path.append(str(bundle_root))
+    sys.path.append(str(bundle_root / "src"))
 else:
-    sys.path.append(str(Path(__file__).resolve().parents[1]))
+    repo_root = Path(__file__).resolve().parents[1]
+    sys.path.append(str(repo_root))
+    sys.path.append(str(repo_root / "src"))
 
 from src.crypto_utils import (
     encrypt_bytes,
@@ -32,7 +36,9 @@ from src.crypto_utils import (
 )
 
 def _log_directory() -> Path:
-    log_dir = Path.home() / ".shareinfo" / "logs"
+    app_data = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+    base_dir = Path(app_data) if app_data else Path.home() / ".shareinfo"
+    log_dir = base_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
 
