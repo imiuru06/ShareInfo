@@ -23,3 +23,4 @@ This allows the key to be transported safely as long as the passphrase remains s
 ## Limitations
 - This tool does not manage identity verification or key exchange.
 - Clipboard operations are convenient but risky in shared/remote environments.
+- File encryption uses the same key material; protect the key and key package as rigorously as the ciphertext.

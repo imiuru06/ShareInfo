@@ -10,3 +10,8 @@
 2. Sender shares ciphertext with the receiver.
 3. Sender shares either the raw key (separate channel) or a passphrase-protected key package.
 4. Receiver verifies key fingerprint and decrypts.
+
+## File Flow
+1. Sender encrypts a file and saves a `.fernet` output.
+2. Sender shares the encrypted file and key (or key package + passphrase) via separate channels.
+3. Receiver decrypts the `.fernet` file using the key.

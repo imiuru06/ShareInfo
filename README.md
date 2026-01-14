@@ -19,6 +19,9 @@ python apps/encrypt_app.py
 python apps/decrypt_app.py
 ```
 
+### File Support
+The GUI supports encrypting files to `.fernet` and decrypting them back on the receiver side.
+
 ## Documentation
 - [Usage Guide](docs/USAGE.md)
 - [Security Guidance](docs/SECURITY.md)

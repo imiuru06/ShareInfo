@@ -6,6 +6,7 @@ from pathlib import Path
 import pyperclip
 from PyQt5.QtWidgets import (
     QApplication,
+    QFileDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -19,6 +20,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.crypto_utils import (
     KeyPackage,
+    decrypt_bytes,
     decrypt_text,
     key_fingerprint,
     unwrap_key_with_passphrase,
@@ -71,6 +73,14 @@ class DecryptApp(QWidget):
         self.copy_button = QPushButton("Copy Decrypted Data")
         self.copy_button.clicked.connect(self.copy_decrypted_data)
 
+        self.file_label = QLabel("File Decryption:")
+        self.file_path_entry = QLineEdit()
+        self.file_path_entry.setReadOnly(True)
+        self.file_select_button = QPushButton("Select Encrypted File")
+        self.file_select_button.clicked.connect(self.select_file)
+        self.decrypt_file_button = QPushButton("Decrypt File")
+        self.decrypt_file_button.clicked.connect(self.decrypt_file)
+
         layout = QVBoxLayout()
         layout.addWidget(self.encrypted_label)
         layout.addWidget(self.encrypted_text)
@@ -87,6 +97,10 @@ class DecryptApp(QWidget):
         layout.addWidget(self.decrypted_label)
         layout.addWidget(self.decrypted_text)
         layout.addWidget(self.copy_button)
+        layout.addWidget(self.file_label)
+        layout.addWidget(self.file_path_entry)
+        layout.addWidget(self.file_select_button)
+        layout.addWidget(self.decrypt_file_button)
 
         self.setLayout(layout)
 
@@ -151,6 +165,42 @@ class DecryptApp(QWidget):
         else:
             QMessageBox.critical(self, "Error", "No decrypted data to copy.")
             logging.error("No decrypted data to copy.")
+
+    def select_file(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Encrypted File", "", "Encrypted Files (*.fernet);;All Files (*)")
+        if file_path:
+            self.file_path_entry.setText(file_path)
+
+    def decrypt_file(self) -> None:
+        file_path = self.file_path_entry.text().strip()
+        if not file_path:
+            QMessageBox.critical(self, "Error", "Please select an encrypted file.")
+            logging.error("No encrypted file selected for decryption.")
+            return
+
+        raw_key = self.key_entry.text().strip()
+        if not raw_key:
+            QMessageBox.critical(self, "Error", "Please provide the encryption key or load it from a package.")
+            logging.error("No key provided for file decryption.")
+            return
+
+        try:
+            self.key = raw_key.encode()
+            with open(file_path, "rb") as file_handle:
+                encrypted_payload = file_handle.read()
+            decrypted_payload = decrypt_bytes(encrypted_payload, self.key)
+            save_path, _ = QFileDialog.getSaveFileName(self, "Save Decrypted File")
+            if not save_path:
+                logging.info("File decryption canceled (no save path selected).")
+                return
+            with open(save_path, "wb") as file_handle:
+                file_handle.write(decrypted_payload)
+            self.fingerprint_value.setText(key_fingerprint(self.key))
+            QMessageBox.information(self, "Success", "File decrypted and saved successfully.")
+            logging.info("File decrypted successfully: %s", save_path)
+        except Exception as exc:  # pragma: no cover - GUI safety net
+            QMessageBox.critical(self, "Error", f"File decryption failed: {exc}")
+            logging.error("File decryption failed: %s", exc)
 
 
 if __name__ == "__main__":

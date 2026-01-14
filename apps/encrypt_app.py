@@ -5,6 +5,7 @@ from pathlib import Path
 import pyperclip
 from PyQt5.QtWidgets import (
     QApplication,
+    QFileDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -17,6 +18,7 @@ from PyQt5.QtWidgets import (
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.crypto_utils import (
+    encrypt_bytes,
     encrypt_text,
     generate_key,
     key_fingerprint,
@@ -76,6 +78,14 @@ class EncryptApp(QWidget):
         self.copy_data_button = QPushButton("Copy Data to Clipboard")
         self.copy_data_button.clicked.connect(self.copy_data)
 
+        self.file_label = QLabel("File Encryption:")
+        self.file_path_entry = QLineEdit()
+        self.file_path_entry.setReadOnly(True)
+        self.file_select_button = QPushButton("Select File")
+        self.file_select_button.clicked.connect(self.select_file)
+        self.encrypt_file_button = QPushButton("Encrypt File")
+        self.encrypt_file_button.clicked.connect(self.encrypt_file)
+
         layout = QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.text_edit)
@@ -93,6 +103,10 @@ class EncryptApp(QWidget):
         layout.addWidget(self.encrypted_data_label)
         layout.addWidget(self.encrypted_data_text)
         layout.addWidget(self.copy_data_button)
+        layout.addWidget(self.file_label)
+        layout.addWidget(self.file_path_entry)
+        layout.addWidget(self.file_select_button)
+        layout.addWidget(self.encrypt_file_button)
 
         self.setLayout(layout)
 
@@ -110,14 +124,7 @@ class EncryptApp(QWidget):
             self.key_fingerprint_value.setText(key_fingerprint(self.key))
             self.encrypted_data_text.setText(self.encrypted_data)
 
-            passphrase = self.passphrase_entry.text().strip()
-            if passphrase:
-                key_package = wrap_key_with_passphrase(self.key, passphrase)
-                self.key_package_json = key_package.to_json()
-                self.key_package_text.setText(self.key_package_json)
-            else:
-                self.key_package_json = None
-                self.key_package_text.clear()
+            self._update_key_package()
 
             QMessageBox.information(
                 self,
@@ -155,6 +162,54 @@ class EncryptApp(QWidget):
         else:
             QMessageBox.critical(self, "Error", "No encrypted data to copy.")
             logging.error("No encrypted data to copy.")
+
+    def _update_key_package(self) -> None:
+        passphrase = self.passphrase_entry.text().strip()
+        if passphrase and self.key:
+            key_package = wrap_key_with_passphrase(self.key, passphrase)
+            self.key_package_json = key_package.to_json()
+            self.key_package_text.setText(self.key_package_json)
+        else:
+            self.key_package_json = None
+            self.key_package_text.clear()
+
+    def select_file(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Encrypt")
+        if file_path:
+            self.file_path_entry.setText(file_path)
+
+    def encrypt_file(self) -> None:
+        file_path = self.file_path_entry.text().strip()
+        if not file_path:
+            QMessageBox.critical(self, "Error", "Please select a file to encrypt.")
+            logging.error("No file selected for encryption.")
+            return
+
+        try:
+            if not self.key:
+                self.key = generate_key()
+                self.key_entry.setText(self.key.decode())
+                self.key_fingerprint_value.setText(key_fingerprint(self.key))
+                self._update_key_package()
+            with open(file_path, "rb") as file_handle:
+                payload = file_handle.read()
+            encrypted_payload = encrypt_bytes(payload, self.key)
+            save_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Encrypted File",
+                f"{file_path}.fernet",
+                "Encrypted Files (*.fernet);;All Files (*)",
+            )
+            if not save_path:
+                logging.info("File encryption canceled (no save path selected).")
+                return
+            with open(save_path, "wb") as file_handle:
+                file_handle.write(encrypted_payload)
+            QMessageBox.information(self, "Success", "File encrypted and saved successfully.")
+            logging.info("File encrypted successfully: %s", save_path)
+        except Exception as exc:  # pragma: no cover - GUI safety net
+            QMessageBox.critical(self, "Error", f"File encryption failed: {exc}")
+            logging.error("File encryption failed: %s", exc)
 
 
 if __name__ == "__main__":

@@ -56,6 +56,16 @@ def decrypt_text(token: str, key: bytes) -> str:
     return plain_text.decode()
 
 
+def encrypt_bytes(payload: bytes, key: bytes) -> bytes:
+    cipher_suite = Fernet(key)
+    return cipher_suite.encrypt(payload)
+
+
+def decrypt_bytes(token: bytes, key: bytes) -> bytes:
+    cipher_suite = Fernet(key)
+    return cipher_suite.decrypt(token)
+
+
 def key_fingerprint(key: bytes) -> str:
     digest = hashlib.sha256(key).hexdigest()
     return " ".join(digest[i : i + 4] for i in range(0, len(digest), 4))
